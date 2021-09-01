@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-api
+spec:
+  replicas: {{ .Values.defaults.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+      component: api
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        component: api
+    spec:
+      imagePullSecrets: 
+      - name: docker-registry
+      containers:
+        - name: gorchase-server
+          image: {{ .Values.api.docker.image }}:{{ .Values.api.docker.tag }}
+          imagePullPolicy: {{ default .Values.defaults.docker.pullPolicy .Values.api.docker.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.api.httpPort }}
+              protocol: TCP
+          env:
+            - name: GORCHASE_DB_HOST
+              value: {{ .Release.Name }}-postgresql-api
+            - name: GORCHASE_DB_NAME
+              value: {{ index .Values "postgresql-api" "postgresqlDatabase" }}
+            - name: GORCHASE_DB_PASS
+              value: {{ index .Values "postgresql-api" "postgresqlPassword" }}
+            - name: GORCHASE_DB_PORT
+              value: "{{ .Values.api.dbPort }}"
+            - name: GORCHASE_DB_USER
+              value: {{ index .Values "postgresql-api" "postgresqlUsername" }}
+      serviceAccountName: aws-beta-auth
+      automountServiceAccountToken: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
