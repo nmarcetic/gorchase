@@ -1,0 +1,60 @@
+defaults:
+  logLevel: "info"
+  docker:
+    pullPolicy: "IfNotPresent"
+    repository: "gorchase"
+    tag: "0.0.1"
+  replicaCount: 1
+
+api:
+  httpPort: 8080
+  dbPort: 5432
+  docker: 
+    image: ghcr.io/nmarcetic/gorchase-server
+    tag: latest
+    pullPolicy: "Always"
+
+postgresql-api:
+  name: postgresql-api
+  postgresqlUsername: postgres
+  postgresqlPassword: gorchase-1234554321
+  postgresqlDatabase: gorchase
+  resources:
+    requests:
+      cpu: 25m
+  persistence:
+    size: 1Gi
+
+ingress:
+  hostname: "gorchase.io"
+  annotations: {
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true",
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true",
+    # nginx.ingress.kubernetes.io/rewrite-target: /$2,
+  }
+  labels: {}
+
+# Chart ingress-nginx/ingress-nginx configuration values
+ingress-nginx: 
+  controller:
+    config:
+      ssl-redirect: "false" # we use `special` port to control ssl redirection
+      server-snippet: |
+        listen 8000;
+        if ( $server_port = 80 ) {
+          return 308 https://$host$request_uri;
+        }
+    containerPort:
+      http: 80
+      https: 443
+      special: 8000
+    service:
+      targetPorts:
+        http: http
+        https: special
+      annotations:
+        domainName: "gorchase.io"
+        service.beta.kubernetes.io/aws-load-balancer-ssl-cert: #<REQUIRED: cert arn> 
+        service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+        service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+        service.beta.kubernetes.io/aws-load-balancer-type: "nlb"

@@ -1,0 +1,20 @@
+FROM golang:1.16-alpine AS builder
+ARG SVC
+ARG GOARCH
+ARG GOARM
+
+WORKDIR /go/src/github.com/nmarcetic/gorchase
+ENV CGO_ENABLED=0
+ARG TARGETOS
+ARG TARGETARCH
+COPY . .
+RUN apk add build-base
+RUN go mod download
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -mod vendor -ldflags "-s -w" -o build/gorchase-server cmd/server/main.go
+RUN mv build/gorchase-server /exe
+
+FROM scratch
+# Certificates are needed so that mailing util can work.
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /exe /
+ENTRYPOINT ["/exe"]

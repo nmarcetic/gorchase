@@ -1,0 +1,38 @@
+version: "3.7"
+
+networks:
+  gorchase-net:
+    driver: bridge
+
+services:
+  gorchase-db:
+      image: postgres:13.1-alpine
+      container_name: gorchase-db
+      environment:
+        POSTGRES_USER: ${GORCHASE_DB_USER}
+        POSTGRES_PASSWORD: ${GORCHASE_DB_PASS}
+        POSTGRES_DB: ${GORCHASE_DB_NAME}
+      env_file: 
+        - .env
+      volumes:
+        - gorchase-db-volume:/var/lib/postgresql/data
+      ports:
+        - 5432:5432
+      networks:
+        - gorchase-net
+
+  gorchase-server:
+      image: ghcr.io/nmarcetic/gorchase-server
+      container_name: gorchase-server
+      depends_on: 
+        - gorchase-db
+      env_file: 
+        - .env
+      ports:
+        - 8080:8080
+      networks:
+        - gorchase-net
+
+volumes:
+  gorchase-db-volume:
+
